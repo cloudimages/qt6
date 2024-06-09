@@ -56,7 +56,9 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 ENV \
   LANG=C.UTF-8 \
-  LC_ALL=C.UTF-8
+  LC_ALL=C.UTF-8 \
+  DISPLAY=:0 \
+  WAYLAND_DISPLAY=wayland-0
 
 # install prerequisites to run qtcreator, tools and Qt
 RUN \

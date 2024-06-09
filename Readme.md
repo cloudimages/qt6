@@ -12,19 +12,27 @@ This project builds Docker images with QtCreator and various compilers used to b
 
 ## Usage
 
-Prerequiste: X server (Win11 or [VcXsrv](https://sourceforge.net/projects/vcxsrv/))
+Prerequiste: X server (Linux with X, Win11 or [VcXsrv](https://sourceforge.net/projects/vcxsrv/))
+
+To run on Windows 11 you need to mount some special directories to enable fast graphics rendering and X11 communications.
 
 ```bash
 docker run -it \
-    -e DISPLAY=host.docker.internal:0 \
+    --mount src=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind \
+    --mount src=/mnt/wslg,target=/mnt/wslg,type=bind \
+    -e XDG_RUNTIME_DIR=/mnt/wslg/runtime-dir \
     --mount src="$(pwd)",target=/build,type=bind \
     arbmind/qtcreator-gcc-qt:latest \
     qtcreator myproject.qbs
 ```
 
+To use clang instead of gcc use this:
+
 ```bash
 docker run -it \
-    -e DISPLAY=host.docker.internal:0 \
+    --mount src=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind \
+    --mount src=/mnt/wslg,target=/mnt/wslg,type=bind \
+    -e XDG_RUNTIME_DIR=/mnt/wslg/runtime-dir \
     --mount src="$(pwd)",target=/build,type=bind \
     arbmind/qtcreator-clang-libstdcpp-qt:latest \
     qtcreator myproject.qbs
@@ -47,10 +55,14 @@ volumes:
 services:
   myproject:
     image: arbmind/qtcreator-gcc-qt:latest
+    cap_add: [SYS_PTRACE] # needed for lldb debugging
+    security_opt: [seccomp=unconfined] # needed for lldb debugging
     environment:
-      - DISPLAY=host.docker.internal:0
+      - XDG_RUNTIME_DIR=/mnt/wslg/runtime-dir
     command: qtcreator myproject.qbs
     volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /mnt/wslg:/mnt/wslg
       - ./repository/:/build
       - tmp:/tmp
 ```
