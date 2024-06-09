@@ -1,23 +1,24 @@
-ARG DISTRO=lunar
+ARG DISTRO=noble
 ARG USER=user
 ARG UID=1000
 ARG GID=1000
-ARG CLANG_MAJOR=16
+ARG CLANG_MAJOR=18
 # clang source options:
 # apt - directly use apt version
 # llvm - add llvm distro repo
 ARG CLANG_SOURCE=apt
-ARG GCC_MAJOR=13
+ARG GCC_MAJOR=14
 # gcc source options:
 # apt - directly use apt version
 # ppa - add toolchain ppa
 ARG GCC_SOURCE=apt
-ARG QTCREATOR_VERSION="10.0.1-patched"
-ARG QTCREATOR_URL="https://github.com/hicknhack-software/Qt-Creator/releases/download/v10.0.1-snapshot-2023-04-02/qtcreator-linux-x64-4589869247.7z"
-ARG QT_ARCH=gcc_64
-ARG QT_VERSION=6.5.0
+ARG QTCREATOR_VERSION="13.0.2-patched"
+ARG QTCREATOR_URL="https://github.com/hicknhack-software/Qt-Creator/releases/download/v13.0.2-patched/qtcreator-linux-x64-9428386763.7z"
+ARG QT_ARCH=linux_gcc_64
+ARG QT_VERSION=6.7.1
 ARG QT_MODULES=qtshadertools
-ARG RUNTIME_APT="libicu72 libglib2.0-0 libdbus-1-3 libpcre2-16-0"
+ARG RUNTIME_APT="libicu74 libglib2.0-0 libdbus-1-3 libpcre2-16-0"
+# ARG RUNTIME_LUNAR="libicu72 libglib2.0-0 libdbus-1-3 libpcre2-16-0"
 # ARG RUNTIME_XENIAL="libicu55 libglib2.0-0"
 
 FROM python:3.10-slim as qt_base
@@ -81,7 +82,7 @@ RUN \
     libpulse0 \
     libdbus-1-3 \
     libgl1-mesa-dri \
-    libgl1-mesa-glx \
+    libglx-mesa0 \
     libxcb-keysyms1 \
     libxcb-render-util0 \
     libxcb-xfixes0 \
@@ -94,6 +95,7 @@ RUN \
     libxcb-xinerama0 \
     libxcb-xkb1 \
     libxkbcommon-x11-0 \
+    libxkbcommon-dev \
     libharfbuzz-icu0 \
     libegl1-mesa-dev \
     libglu1-mesa-dev \
@@ -223,7 +225,7 @@ ARG QT_VERSION
 LABEL Description="Ubuntu ${DISTRO} - Clang${CLANG_MAJOR} + libstdc++-${GCC_MAJOR} + QtCreator-${QTCREATOR_VERSION} + Qt-${QT_VERSION}"
 LABEL org.opencontainers.image.source = "https://github.com/arBmind/qtcreator-containers"
 
-COPY --from=qt_base /qt/${QT_VERSION}/${QT_ARCH} /opt/qt
+COPY --from=qt_base /qt/${QT_VERSION}/gcc_64 /opt/qt
 
 USER ${USER}
 ENV \
@@ -281,7 +283,7 @@ ARG QT_VERSION
 LABEL Description="Ubuntu ${DISTRO} - GCC-${GCC_MAJOR} + QtCreator-${QTCREATOR_VERSION} + Qt-${QT_VERSION}"
 LABEL org.opencontainers.image.source = "https://github.com/arBmind/qtcreator-containers"
 
-COPY --from=qt_base /qt/${QT_VERSION}/${QT_ARCH} /opt/qt
+COPY --from=qt_base /qt/${QT_VERSION}/gcc_64 /opt/qt
 
 USER ${USER}
 ENV \
