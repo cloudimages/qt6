@@ -15,6 +15,7 @@ jobs:
           {major: 18, source: 'llvm'}
         ]
         gcc: [
+          {major: 13, source: 'apt'},
           {major: 14, source: 'apt'}
         ]
         qt: [
