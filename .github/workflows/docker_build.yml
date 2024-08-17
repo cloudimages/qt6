@@ -21,11 +21,11 @@ jobs:
         qt: [
           {version: '6.5.3', arch: 'gcc_64'},
           {version: '6.6.3', arch: 'gcc_64'},
-          {version: '6.7.1', arch: 'linux_gcc_64'}
+          {version: '6.7.2', arch: 'linux_gcc_64'}
         ]
         qtcreator: [
-          {version: "13.0.2", url: "https://github.com/qt-creator/qt-creator/releases/download/v13.0.2/qtcreator-linux-x64-13.0.2.7z"},
-          {version: "13.0.2-patched", url: "https://github.com/hicknhack-software/Qt-Creator/releases/download/v13.0.2-patched/qtcreator-linux-x64-9428386763.7z"}
+          {version: "14.0.1", url: "https://github.com/qt-creator/qt-creator/releases/download/v14.0.1/qtcreator-linux-x64-14.0.1.7z"},
+          {version: "14.0.1-patched", url: "https://github.com/hicknhack-software/Qt-Creator/releases/download/v14.0.0-patched/qtcreator-linux-x64-10100609914.7z"}
         ]
 
         include:
@@ -33,7 +33,7 @@ jobs:
             clang: {major: 18, source: 'llvm'}
             gcc: {major: 14, source: 'apt'}
             qt_version: {version: '6.7.1', arch: 'linux_gcc_64'}
-            qtcreator: {version: "13.0.2-patched", url: "https://github.com/hicknhack-software/Qt-Creator/releases/download/v13.0.2-patched/qtcreator-linux-x64-9428386763.7z"}
+            qtcreator: {version: "14.0.1-patched", url: "https://github.com/hicknhack-software/Qt-Creator/releases/download/v14.0.0-patched/qtcreator-linux-x64-10100609914.7z"}
             clang_tags: |
               arbmind/qtcreator-clang:latest
               ghcr.io/arbmind/qtcreator-clang:latest
@@ -52,28 +52,28 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Login to DockerHub
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Login to GitHub Container Registry
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: QtCreator ${{ matrix.qtcreator.version }} + Clang${{ matrix.clang.major }}
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v6
         with:
           target: qtcreator-clang
           push: ${{ github.event_name != 'pull_request' }}
@@ -90,7 +90,7 @@ jobs:
             QTCREATOR_VERSION=${{ matrix.qtcreator.version }}
 
       - name: QtCreator ${{ matrix.qtcreator.version }} + Clang${{ matrix.clang.major }} + libstdc++-${{ matrix.gcc.major }}
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v6
         with:
           target: qtcreator-clang-libstdcpp
           push: ${{ github.event_name != 'pull_request' }}
@@ -110,7 +110,7 @@ jobs:
             QTCREATOR_VERSION=${{ matrix.qtcreator.version }}
 
       - name: QtCreator ${{ matrix.qtcreator.version }} + Clang${{ matrix.clang.major }} + libstdc++-${{ matrix.gcc.major }} + Qt-${{ matrix.qt.version }}
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v6
         with:
           target: qtcreator-clang-libstdcpp-qt
           push: ${{ github.event_name != 'pull_request' }}
@@ -130,7 +130,7 @@ jobs:
             QTCREATOR_VERSION=${{ matrix.qtcreator.version }}
 
       - name: QtCreator ${{ matrix.qtcreator.version }} + GCC${{ matrix.gcc.major }}
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v6
         with:
           target: qtcreator-gcc
           push: ${{ github.event_name != 'pull_request' }}
@@ -148,7 +148,7 @@ jobs:
             QTCREATOR_VERSION=${{ matrix.qtcreator.version }}
 
       - name: QtCreator ${{ matrix.qtcreator.version }} + GCC${{ matrix.gcc.major }} + Qt-${{ matrix.qt.version }}
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v6
         with:
           target: qtcreator-gcc-qt
           push: ${{ github.event_name != 'pull_request' }}
