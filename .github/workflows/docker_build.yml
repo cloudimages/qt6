@@ -25,15 +25,15 @@ jobs:
         ]
         qtcreator: [
           {version: "14.0.1", url: "https://github.com/qt-creator/qt-creator/releases/download/v14.0.1/qtcreator-linux-x64-14.0.1.7z"},
-          {version: "14.0.1-patched", url: "https://github.com/hicknhack-software/Qt-Creator/releases/download/v14.0.0-patched/qtcreator-linux-x64-10100609914.7z"}
+          {version: "14.0.1-patched", url: "https://github.com/hicknhack-software/Qt-Creator/releases/download/v14.0.1-patched/qtcreator-linux-x64-10866254890.7z"}
         ]
 
         include:
           - distro: noble
             clang: {major: 18, source: 'llvm'}
             gcc: {major: 14, source: 'apt'}
-            qt_version: {version: '6.7.1', arch: 'linux_gcc_64'}
-            qtcreator: {version: "14.0.1-patched", url: "https://github.com/hicknhack-software/Qt-Creator/releases/download/v14.0.0-patched/qtcreator-linux-x64-10100609914.7z"}
+            qt_version: {version: '6.7.2', arch: 'linux_gcc_64'}
+            qtcreator: {version: "14.0.1-patched", url: "https://github.com/hicknhack-software/Qt-Creator/releases/download/v14.0.1-patched/qtcreator-linux-x64-10866254890.7z"}
             clang_tags: |
               arbmind/qtcreator-clang:latest
               ghcr.io/arbmind/qtcreator-clang:latest
