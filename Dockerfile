@@ -1,7 +1,7 @@
-ARG DISTRO=noble
-ARG USER=user
-ARG UID=1000
-ARG GID=1000
+ARG DISTRO=ubuntu-24.04
+ARG USER=aosp
+ARG UID=1001
+ARG GID=1001
 ARG CLANG_MAJOR=18
 # clang source options:
 # apt - directly use apt version
@@ -15,13 +15,13 @@ ARG GCC_SOURCE=apt
 ARG QTCREATOR_VERSION="13.0.2-patched"
 ARG QTCREATOR_URL="https://github.com/hicknhack-software/Qt-Creator/releases/download/v13.0.2-patched/qtcreator-linux-x64-9428386763.7z"
 ARG QT_ARCH=linux_gcc_64
-ARG QT_VERSION=6.7.1
+ARG QT_VERSION=6.8.0
 ARG QT_MODULES=qtshadertools
 ARG RUNTIME_APT="libicu74 libglib2.0-0 libdbus-1-3 libpcre2-16-0"
 # ARG RUNTIME_LUNAR="libicu72 libglib2.0-0 libdbus-1-3 libpcre2-16-0"
 # ARG RUNTIME_XENIAL="libicu55 libglib2.0-0"
 
-FROM python:3.10-slim as qt_base
+FROM python:3.10-slim AS qt_base
 ARG QT_ARCH
 ARG QT_VERSION
 ARG QT_MODULES
@@ -44,7 +44,7 @@ RUN \
   && aqt install-qt linux desktop ${QT_VERSION} ${QT_ARCH} -m ${QT_MODULES} --external "7z"
 
 
-FROM ubuntu:${DISTRO} AS qtcreator_base
+FROM mcr.microsoft.com/devcontainers/cpp:${DISTRO} AS qtcreator_base
 ARG DISTRO
 ARG USER
 ARG UID
@@ -103,17 +103,10 @@ RUN \
     libglu1-mesa-dev \
     libwayland-egl1 \
     libwayland-cursor0 \
+    build-essential \
   && apt-get --yes autoremove \
   && apt-get clean autoclean \
   && rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/*
-
-# install qtcreator from CI build
-RUN \
-  wget --progress=bar:force:noscroll -O qtcreator.7z ${QTCREATOR_URL} \
-  && mkdir /opt/qtcreator \
-  && 7z x -o/opt/qtcreator qtcreator.7z \
-  && rm qtcreator.7z \
-  && ln -s /opt/qtcreator/bin/qtcreator /usr/bin/qtcreator
 
 # preconfigure qtcreator
 COPY config/qtversion.xml /home/${USER}/.config/QtProject/qtcreator/qtversion.xml
@@ -132,160 +125,7 @@ RUN \
 WORKDIR /build
 
 
-FROM qtcreator_base AS qtcreator_clang_base
-ARG DISTRO
-ARG CLANG_MAJOR
-ARG CLANG_SOURCE
-ARG APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1
-ARG DEBIAN_FRONTEND=noninteractive
-
-# install Clang (https://apt.llvm.org/) with format and debugger
-RUN \
-  if [ "$CLANG_SOURCE" = "llvm" ] ; then \
-    wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - \
-    && echo "deb http://apt.llvm.org/${DISTRO}/ llvm-toolchain-${DISTRO}-${CLANG_MAJOR} main" > /etc/apt/sources.list.d/llvm.list \
-    && apt-get update --quiet \
-    ; fi \
-  && apt-get install --yes --quiet --no-install-recommends \
-    clang-${CLANG_MAJOR} \
-    clang-format-${CLANG_MAJOR} \
-    lldb-${CLANG_MAJOR} \
-    lld-${CLANG_MAJOR} \
-    libc++abi-${CLANG_MAJOR}-dev \
-    libc++-${CLANG_MAJOR}-dev \
-  && update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${CLANG_MAJOR} 100 \
-  && update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${CLANG_MAJOR} 100 \
-  && update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-${CLANG_MAJOR} 100 \
-  && update-alternatives --install /usr/bin/ld ld /usr/bin/ld.lld-${CLANG_MAJOR} 10 \
-  && update-alternatives --install /usr/bin/ld ld /usr/bin/ld.gold 20 \
-  && update-alternatives --install /usr/bin/ld ld /usr/bin/ld.bfd 30 \
-  && apt-get --yes autoremove \
-  && apt-get clean autoclean \
-  && rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/*
-
-
-FROM qtcreator_clang_base AS qtcreator-clang
-ARG USER
-ARG DISTRO
-ARG CLANG_MAJOR
-ARG QTCREATOR_VERSION
-
-LABEL Description="Ubuntu ${DISTRO} - Clang-${CLANG_MAJOR} + QtCreator-${QTCREATOR_VERSION}"
-LABEL org.opencontainers.image.source = "https://github.com/arBmind/qtcreator-containers"
-
-USER ${USER}
-ENV \
-  HOME=/home/${USER} \
-  XDG_RUNTIME_DIR=/tmp/runtime-${USER}
-
-
-FROM qtcreator_clang_base AS qtcreator_clang_libstdcpp_base
-ARG DISTRO
-ARG GCC_MAJOR
-ARG GCC_SOURCE
-ARG APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1
-ARG DEBIAN_FRONTEND=noninteractive
-
-RUN \
-  if [ "$GCC_SOURCE" = "ppa" ] ; then \
-    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 60C317803A41BA51845E371A1E9377A2BA9EF27F \
-    && echo "deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu ${DISTRO} main" > /etc/apt/sources.list.d/gcc.list \
-    && apt-get update --quiet \
-    ; fi \
-  && apt-get install --yes --quiet --no-install-recommends \
-    libstdc++-${GCC_MAJOR}-dev \
-  && apt-get --yes autoremove \
-  && apt-get clean autoclean \
-  && rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/*
-
-
-FROM qtcreator_clang_libstdcpp_base AS qtcreator-clang-libstdcpp
-ARG USER
-ARG DISTRO
-ARG GCC_MAJOR
-ARG CLANG_MAJOR
-ARG QTCREATOR_VERSION
-
-LABEL Description="Ubuntu ${DISTRO} - Clang${CLANG_MAJOR} + libstdc++-${GCC_MAJOR} + QtCreator-${QTCREATOR_VERSION}"
-LABEL org.opencontainers.image.source = "https://github.com/arBmind/qtcreator-containers"
-
-USER ${USER}
-ENV \
-  HOME=/home/${USER} \
-  XDG_RUNTIME_DIR=/tmp/runtime-${USER}
-
-
-FROM qtcreator_clang_libstdcpp_base AS qtcreator-clang-libstdcpp-qt
-ARG USER
-ARG DISTRO
-ARG CLANG_MAJOR
-ARG GCC_MAJOR
-ARG QTCREATOR_VERSION
-ARG QT_ARCH
-ARG QT_VERSION
-
-LABEL Description="Ubuntu ${DISTRO} - Clang${CLANG_MAJOR} + libstdc++-${GCC_MAJOR} + QtCreator-${QTCREATOR_VERSION} + Qt-${QT_VERSION}"
-LABEL org.opencontainers.image.source = "https://github.com/arBmind/qtcreator-containers"
-
-COPY --from=qt_base /qt/${QT_VERSION}/gcc_64 /opt/qt
-
-USER ${USER}
-ENV \
-  HOME=/home/${USER} \
-  XDG_RUNTIME_DIR=/tmp/runtime-${USER}
-
-
-FROM qtcreator_base AS qtcreator_gcc_base
-ARG DISTRO
-ARG GCC_MAJOR
-ARG GCC_SOURCE
-ARG APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1
-ARG DEBIAN_FRONTEND=noninteractive
-
-# install Clang (https://apt.llvm.org/) with format and debugger
-RUN \
-  if [ "$GCC_SOURCE" = "ppa" ] ; then \
-    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 60C317803A41BA51845E371A1E9377A2BA9EF27F \
-    && echo "deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu ${DISTRO} main" > /etc/apt/sources.list.d/gcc.list \
-    && apt-get update --quiet \
-    ; fi \
-  && apt-get install --yes --quiet --no-install-recommends \
-    gcc-${GCC_MAJOR} \
-    g++-${GCC_MAJOR} \
-    libstdc++-${GCC_MAJOR}-dev \
-    gdb \
-  && apt-get --yes autoremove \
-  && apt-get clean autoclean \
-  && rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/*
-
-
-FROM qtcreator_gcc_base AS qtcreator-gcc
-ARG USER
-ARG DISTRO
-ARG GCC_MAJOR
-ARG QTCREATOR_VERSION
-
-LABEL Description="Ubuntu ${DISTRO} - GCC-${GCC_MAJOR} + QtCreator-${QTCREATOR_VERSION}"
-LABEL org.opencontainers.image.source = "https://github.com/arBmind/qtcreator-containers"
-
-USER ${USER}
-ENV \
-  HOME=/home/${USER} \
-  XDG_RUNTIME_DIR=/tmp/runtime-${USER}
-
-
-FROM qtcreator_gcc_base AS qtcreator-gcc-qt
-ARG USER
-ARG DISTRO
-ARG GCC_MAJOR
-ARG QTCREATOR_VERSION
-ARG QT_ARCH
-ARG QT_VERSION
-
-LABEL Description="Ubuntu ${DISTRO} - GCC-${GCC_MAJOR} + QtCreator-${QTCREATOR_VERSION} + Qt-${QT_VERSION}"
-LABEL org.opencontainers.image.source = "https://github.com/arBmind/qtcreator-containers"
-
-COPY --from=qt_base /qt/${QT_VERSION}/gcc_64 /opt/qt
+# COPY Qt /opt/qt6
 
 USER ${USER}
 ENV \

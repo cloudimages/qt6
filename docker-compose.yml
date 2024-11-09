@@ -1,0 +1,16 @@
+volumes:
+  tmp: # cached builds
+
+services:
+  myproject:
+    image: devcontainers1/qt6:latest
+    cap_add: [SYS_PTRACE] # needed for lldb debugging
+    security_opt: [seccomp=unconfined] # needed for lldb debugging
+    environment:
+      - XDG_RUNTIME_DIR=/run/user/1001
+    command: /bin/sh -c "vim"
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /home/roger_ye/src/:/build
+      - /run:/run
+      - tmp:/tmp
