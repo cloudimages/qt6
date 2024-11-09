@@ -1,6 +1,6 @@
 all: build
 IMAGE = devcontainers1/qt6
-VERSION = latest
+VERSION = v1.0.1
 
 .PHONY: build
 build:

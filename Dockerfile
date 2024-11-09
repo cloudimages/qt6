@@ -21,30 +21,7 @@ ARG RUNTIME_APT="libicu74 libglib2.0-0 libdbus-1-3 libpcre2-16-0"
 # ARG RUNTIME_LUNAR="libicu72 libglib2.0-0 libdbus-1-3 libpcre2-16-0"
 # ARG RUNTIME_XENIAL="libicu55 libglib2.0-0"
 
-FROM python:3.10-slim AS qt_base
-ARG QT_ARCH
-ARG QT_VERSION
-ARG QT_MODULES
-ARG APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1
-ARG DEBIAN_FRONTEND=noninteractive
-
-RUN pip install aqtinstall
-
-RUN \
-  apt update --quiet \
-  && apt-get install --yes --quiet --no-install-recommends \
-    p7zip-full \
-    libglib2.0-0 \
-  && apt-get --yes autoremove \
-  && apt-get clean autoclean \
-  && rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/*
-
-RUN \
-  mkdir /qt && cd /qt \
-  && aqt install-qt linux desktop ${QT_VERSION} ${QT_ARCH} -m ${QT_MODULES} --external "7z"
-
-
-FROM mcr.microsoft.com/devcontainers/cpp:${DISTRO} AS qtcreator_base
+FROM mcr.microsoft.com/devcontainers/cpp:${DISTRO}
 ARG DISTRO
 ARG USER
 ARG UID
@@ -103,31 +80,7 @@ RUN \
     libglu1-mesa-dev \
     libwayland-egl1 \
     libwayland-cursor0 \
-    build-essential \
   && apt-get --yes autoremove \
   && apt-get clean autoclean \
   && rm -rf /var/lib/apt/lists/{apt,dpkg,cache,log} /tmp/* /var/tmp/*
 
-# preconfigure qtcreator
-COPY config/qtversion.xml /home/${USER}/.config/QtProject/qtcreator/qtversion.xml
-COPY config/QtCreator.ini /home/${USER}/.config/QtProject/QtCreator.ini
-
-# add user for development
-RUN \
-  if [ "${UID}" = "1000" ] ; then userdel --remove ubuntu ; fi \
-  && groupadd --gid ${GID} ${USER} \
-  && useradd --create-home --home-dir /home/${USER} --shell /bin/bash ${USER} --uid ${UID} --gid ${GID} \
-  && echo "${USER} ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/${USER} \
-  && chmod 0440 /etc/sudoers.d/${USER} \
-  && mkdir -p /build \
-  && chown ${UID}:${GID} -R /home/${USER} /build
-
-WORKDIR /build
-
-
-# COPY Qt /opt/qt6
-
-USER ${USER}
-ENV \
-  HOME=/home/${USER} \
-  XDG_RUNTIME_DIR=/tmp/runtime-${USER}
